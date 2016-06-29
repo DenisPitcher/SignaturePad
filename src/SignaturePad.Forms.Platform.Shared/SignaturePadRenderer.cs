@@ -32,14 +32,17 @@ using NativeSignaturePadView = SignaturePad.SignaturePadView;
 using NativePoint = System.Drawing.PointF;
 using NativeColor = Android.Graphics.Color;
 #elif WINDOWS_UWP
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using ImageTools;
-using ImageTools.IO.Png;
-using Xamarin.Forms.Platform.WinPhone;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Media;
+//using ImageTools;
+//using ImageTools.IO.Png;
+using Xamarin.Forms.Platform.UWP;
 using SignaturePad.Forms.WindowsPhone;
 using NativeSignaturePadView = Xamarin.Controls.SignaturePad;
-using NativePoint = System.Windows.Point;
+using NativePoint = Windows.Foundation.Point;
+using Windows.Graphics.Imaging;
+using Windows.Storage.Streams;
+using System.Runtime.InteropServices.WindowsRuntime;
 #endif
 
 [assembly: ExportRenderer(typeof(SignaturePadView), typeof(SignaturePadRenderer))]
@@ -160,27 +163,37 @@ namespace SignaturePad.Forms.WindowsPhone
                         }
                     });
 #elif WINDOWS_UWP
-                ExtendedImage img = null;
-                if (e.ImageFormat == SignatureImageFormat.Png)
-                {
-                    img = image.ToImage();
-                }
-                var stream = new MemoryStream();
+                var stream = new InMemoryRandomAccessStream();
                 e.ImageStreamTask = Task.Run<Stream>(() =>
                 {
+                    BitmapEncoder encoder = null;
+
                     if (e.ImageFormat == SignatureImageFormat.Png)
-                    {
-                        var encoder = new PngEncoder();
-                        encoder.Encode(img, stream);
-                        return stream;
+                    { 
+                        encoder = BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream).GetResults();
+                        // Get pixels of the WriteableBitmap object 
+                        Stream pixelStream = image.PixelBuffer.AsStream();
+                        byte[] pixels = new byte[pixelStream.Length];
+                        Task.Run(() => pixelStream.ReadAsync(pixels, 0, pixels.Length)).Wait();
+                        // Save the image file with jpg extension 
+                        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore, (uint)image.PixelWidth, (uint)image.PixelHeight, 96.0, 96.0, pixels);
+                        Task.Run(() => encoder.FlushAsync()).Wait();
+                        return stream.AsStream();
                     }
-                    if (e.ImageFormat == SignatureImageFormat.Jpg)
-                    {
-                        image.SaveJpeg(stream, image.PixelWidth, image.PixelHeight, 0, 100);
-                        return stream;
+                    else if (e.ImageFormat == SignatureImageFormat.Jpg) {
+                        encoder = BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, stream).GetResults();
+                        // Get pixels of the WriteableBitmap object 
+                        Stream pixelStream = image.PixelBuffer.AsStream();
+                        byte[] pixels = new byte[pixelStream.Length];
+                        Task.Run(() => pixelStream.ReadAsync(pixels, 0, pixels.Length)).Wait();
+                        // Save the image file with jpg extension 
+                        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore, (uint)image.PixelWidth, (uint)image.PixelHeight, 96.0, 96.0, pixels);
+                        Task.Run(() => encoder.FlushAsync()).Wait();
+                        return stream.AsStream();
                     }
                     return null;
                 });
+                
 #endif
 
             }
@@ -256,6 +269,8 @@ namespace SignaturePad.Forms.WindowsPhone
                 var color = Element.SignatureLineColor.ToNative();
 #if WINDOWS_PHONE
                 Control.SignatureLineBrush = new SolidColorBrush(color);
+#elif WINDOWS_UWP
+                Control.SignatureLineBrush = new SolidColorBrush(color);
 #else
                 Control.SignatureLineColor = color;
 #endif
@@ -312,6 +327,8 @@ namespace SignaturePad.Forms.WindowsPhone
             {
                 var color = Element.SignatureLineColor.ToNative();
 #if WINDOWS_PHONE
+                Control.SignatureLineBrush = new SolidColorBrush(color);
+#elif WINDOWS_UWP
                 Control.SignatureLineBrush = new SolidColorBrush(color);
 #else
                 Control.SignatureLineColor = color;
