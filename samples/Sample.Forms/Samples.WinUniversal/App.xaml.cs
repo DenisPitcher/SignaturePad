@@ -56,6 +56,9 @@ namespace Samples.WinUniversal
 
                 rootFrame.NavigationFailed += OnNavigationFailed;
 
+                // add this line
+                Xamarin.Forms.Forms.Init(e); // requires the `e` parameter
+
                 if (e.PreviousExecutionState == ApplicationExecutionState.Terminated)
                 {
                     //TODO: Load state from previously suspended application
