@@ -30,26 +30,7 @@ namespace Samples.WinUniversal
 
             var t = typeof(SignaturePad.Forms.WindowsPhone.SignaturePadRenderer);
 
-            // show the StatusBar
-            ShowStatusBar();
-
             LoadApplication(new Samples.App());
         }
-
-        // show the StatusBar
-        private async void ShowStatusBar()
-        {
-            // turn on SystemTray for mobile
-            // don't forget to add a Reference to Windows Mobile Extensions For The UWP
-            if (Windows.Foundation.Metadata.ApiInformation.IsTypePresent("Windows.UI.ViewManagement.StatusBar"))
-            {
-                var statusbar = StatusBar.GetForCurrentView();
-                await statusbar.ShowAsync();
-                statusbar.BackgroundColor = Windows.UI.Colors.Green;
-                statusbar.BackgroundOpacity = 1;
-                statusbar.ForegroundColor = Windows.UI.Colors.Red;
-            }
-        }
-
     }
 }
