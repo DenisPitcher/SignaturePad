@@ -31,6 +31,15 @@ using SignaturePad.Forms.Droid;
 using NativeSignaturePadView = SignaturePad.SignaturePadView;
 using NativePoint = System.Drawing.PointF;
 using NativeColor = Android.Graphics.Color;
+#elif WINDOWS_UWP
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using ImageTools;
+using ImageTools.IO.Png;
+using Xamarin.Forms.Platform.WinPhone;
+using SignaturePad.Forms.WindowsPhone;
+using NativeSignaturePadView = Xamarin.Controls.SignaturePad;
+using NativePoint = System.Windows.Point;
 #endif
 
 [assembly: ExportRenderer(typeof(SignaturePadView), typeof(SignaturePadRenderer))]
@@ -41,6 +50,8 @@ namespace SignaturePad.Forms.WindowsPhone
 namespace SignaturePad.Forms.iOS
 #elif __ANDROID__
 namespace SignaturePad.Forms.Droid
+#elif WINDOWS_UWP
+namespace SignaturePad.Forms.WindowsPhone
 #endif
 {
     public class SignaturePadRenderer : ViewRenderer<SignaturePadView, NativeSignaturePadView>
@@ -148,7 +159,30 @@ namespace SignaturePad.Forms.Droid
                             return null;
                         }
                     });
+#elif WINDOWS_UWP
+                ExtendedImage img = null;
+                if (e.ImageFormat == SignatureImageFormat.Png)
+                {
+                    img = image.ToImage();
+                }
+                var stream = new MemoryStream();
+                e.ImageStreamTask = Task.Run<Stream>(() =>
+                {
+                    if (e.ImageFormat == SignatureImageFormat.Png)
+                    {
+                        var encoder = new PngEncoder();
+                        encoder.Encode(img, stream);
+                        return stream;
+                    }
+                    if (e.ImageFormat == SignatureImageFormat.Jpg)
+                    {
+                        image.SaveJpeg(stream, image.PixelWidth, image.PixelHeight, 0, 100);
+                        return stream;
+                    }
+                    return null;
+                });
 #endif
+
             }
         }
 
